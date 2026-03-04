@@ -1,6 +1,8 @@
 import os
 import unittest
+import yaml
 from unittest.mock import MagicMock, patch
+from pathlib import Path
 from pydantic import ValidationError
 from slac_devices.device import (
     Device,
@@ -8,12 +10,13 @@ from slac_devices.device import (
     RemoveDeviceCallbackError,
 )
 from epics import PV
-import yaml
 
 
 class TestDevice(unittest.TestCase):
     def setUp(self) -> None:
-        self.config_location = "./tests/datasets/devices/config/"
+        self.config_location = (
+            Path(__file__).parent / "test_data" / "config"
+        )
         self.config_filename = os.path.join(self.config_location, "base_device.yaml")
         with open(self.config_filename, "r") as file:
             self.device_name = "DEVICE_1"

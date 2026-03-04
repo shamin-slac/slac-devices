@@ -1,3 +1,4 @@
+import slac_devices
 from pydantic import SerializeAsAny, ConfigDict, field_validator, field_serializer
 from typing import List, Union, Callable, Dict, Optional
 from epics import PV

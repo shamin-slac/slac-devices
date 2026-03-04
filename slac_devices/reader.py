@@ -2,6 +2,7 @@ import os
 import yaml
 from typing import Union, Optional, Any, Dict
 from pydantic import ValidationError
+import slac_db
 from slac_devices.screen import Screen, ScreenCollection
 from slac_devices.magnet import Magnet, MagnetCollection
 from slac_devices.wire import Wire, WireCollection
@@ -16,7 +17,7 @@ from slac_devices.beampath import Beampath
 def create_magnet(
     area: str = None, name: str = None
 ) -> Union[None, Magnet, MagnetCollection]:
-    device_data = _device_data(area=area, device_type="magnets", name=name)
+    device_data = slac_db.get_device(area=area, device_type="magnets", name=name)
     if not device_data:
         return None
     if name:
@@ -34,7 +35,7 @@ def create_magnet(
 def create_screen(
     area: str = None, name: str = None
 ) -> Union[None, Screen, ScreenCollection]:
-    device_data = _device_data(area=area, device_type="screens", name=name)
+    device_data = slac_db.get_device(area=area, device_type="screens", name=name)
     if not device_data:
         return None
     if name:
@@ -52,7 +53,7 @@ def create_screen(
 def create_wire(
     area: str = None, name: str = None
 ) -> Union[None, Wire, WireCollection]:
-    device_data = _device_data(area=area, device_type="wires", name=name)
+    device_data = slac_db.get_device(area=area, device_type="wires", name=name)
     if not device_data:
         return None
     if name:
@@ -70,7 +71,7 @@ def create_wire(
 def create_lblm(
     area: str = None, name: str = None
 ) -> Union[None, LBLM, LBLMCollection]:
-    device_data = _device_data(area=area, device_type="lblms", name=name)
+    device_data = slac_db.get_device(area=area, device_type="lblms", name=name)
     if not device_data:
         return None
     if name:
@@ -86,7 +87,7 @@ def create_lblm(
 
 
 def create_bpm(area: str = None, name: str = None) -> Union[None, BPM, BPMCollection]:
-    device_data = _device_data(area=area, device_type="bpms", name=name)
+    device_data = slac_db.get_device(area=area, device_type="bpms", name=name)
     if not device_data:
         return None
     if name:
@@ -102,7 +103,7 @@ def create_bpm(area: str = None, name: str = None) -> Union[None, BPM, BPMCollec
 
 
 def create_tcav(area: str = None, name: str = None) -> Union[None, TCAV]:
-    device_data = _device_data(area=area, device_type="tcavs", name=name)
+    device_data = slac_db.get_device(area=area, device_type="tcavs", name=name)
     if not device_data:
         return None
     if name:
@@ -116,7 +117,7 @@ def create_tcav(area: str = None, name: str = None) -> Union[None, TCAV]:
 
 
 def create_pmt(area: str = None, name: str = None) -> Union[None, PMT]:
-    device_data = _device_data(area=area, device_type="pmts", name=name)
+    device_data = slac_db.get_device(area=area, device_type="pmts", name=name)
     if not device_data:
         return None
     if name:
@@ -147,7 +148,7 @@ def create_area(area: str = None) -> Union[None, Area]:
         Area: An Area object with all valid devices instantiated.
         None: If the YAML data is missing or contains validation errors.
     """
-    yaml_data = _device_data(area=area)
+    yaml_data = slac_db.get_device(area=area)
     if not yaml_data:
         return None
     try:
@@ -155,19 +156,6 @@ def create_area(area: str = None) -> Union[None, Area]:
     except ValidationError as field_error:
         print("Error trying to create area", area, " : ", field_error)
         return None
-
-
-def _flatten(nested_list):
-    if nested_list == []:
-        # empty list, no need to flatten
-        return nested_list
-    if isinstance(nested_list[0], list):
-        # first element is a list, so call flatten again
-        # and append the result to the result of flatten for the rest of the list
-        return _flatten(nested_list[0]) + _flatten(nested_list[1:])
-    # we know 0-1 is flattened, flatten 1 -> -1
-    return nested_list[:1] + _flatten(nested_list[1:])
-
 
 def create_beampath(beampath: str = None) -> Union[None, Beampath]:
     """

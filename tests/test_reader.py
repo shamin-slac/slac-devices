@@ -1,4 +1,5 @@
-from slac_devices.reader import create_magnet, _find_yaml_file
+import slac_db
+from slac_devices.reader import create_magnet
 from slac_devices.magnet import Magnet, MagnetCollection
 import unittest
 from unittest.mock import patch, MagicMock
@@ -16,10 +17,6 @@ class TestMagnetReader(unittest.TestCase):
         self.mock_ctrl_options.return_value = {"enum_strs": tuple("READY")}
         return super().setUp()
 
-    def test_bad_file_location_raises_when_finding(self):
-        with self.assertRaises(FileNotFoundError):
-            _find_yaml_file(area="bad-area")
-
     def test_bad_file_location_when_creating_magnet_returns_none(self):
         self.assertIsNone(create_magnet("bad-area"))
 
@@ -30,19 +27,19 @@ class TestMagnetReader(unittest.TestCase):
         self.assertIsNone(create_magnet(area="GUNB", name="BAD-MAGNET-NAME"))
 
     @patch(
-        "slac_devices.reader._find_yaml_file",
+        "slac_db.get_yaml",
         new_callable=MagicMock(),
     )
-    def test_config_with_no_control_information_returns_none(self, mock_find_yaml):
-        mock_find_yaml.return_value = self.bad_config
+    def test_config_with_no_control_information_returns_none(self, mock_get_yaml):
+        mock_get_yaml.return_value = self.bad_config
         self.assertIsNone(create_magnet(area="GUNX", name="CQ02B"))
 
     @patch(
-        "slac_devices.reader._find_yaml_file",
+        "slac_db.get_yaml",
         new_callable=MagicMock(),
     )
-    def test_config_with_no_metadata_returns_none(self, mock_find_yaml):
-        mock_find_yaml.return_value = self.bad_config
+    def test_config_with_no_metadata_returns_none(self, mock_get_yaml):
+        mock_get_yaml.return_value = self.bad_config
         self.assertIsNone(create_magnet(area="GUNX", name="SOL1B"))
 
     def test_create_magnet_with_only_config_creates_all_magnets(self):

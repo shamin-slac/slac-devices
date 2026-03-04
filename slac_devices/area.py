@@ -1,3 +1,4 @@
+import slac_devices
 from typing import (
     Any,
     Dict,
