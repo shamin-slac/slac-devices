@@ -303,7 +303,7 @@ class Wire(Device):
         property_name = "use_" + plane_name + "_wire"
         setattr(self, property_name, val)
 
-    def _active_profiles(self) -> List[str]:
+    def active_profiles(self) -> List[str]:
         """Returns the active scan profiles among X, Y, and U."""
         active_profiles: List[str] = []
         if bool(self.use_x_wire):
