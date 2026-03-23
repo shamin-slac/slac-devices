@@ -139,11 +139,11 @@ class Wire(Device):
         active = []
         try:
             if self.use_x_wire:
-                active.append("X")
+                active.append("x")
             if self.use_y_wire:
-                active.append("Y")
+                active.append("y")
             if self.use_u_wire:
-                active.append("U")
+                active.append("u")
         except Exception:
             pass
         return active
