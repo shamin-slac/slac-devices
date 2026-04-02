@@ -11,6 +11,55 @@ from slac_devices.wire import WireMetadata
 
 class WireTest(TestCase):
     def setUp(self) -> None:
+        self.slac_db_patch = patch("slac_db.get_device", new_callable=Mock)
+        self.mock_get_device = self.slac_db_patch.start()
+        self.mock_get_device.return_value = {
+            "controls_information": {
+                "control_name": "WSBP2",
+                "PVs": {
+                    "abort_scan": "WSBP2:MOTR.STOP",
+                    "beam_rate": "WSBP2:BEAMRATE",
+                    "enabled": "WSBP2:MOTR_ENABLED_STS",
+                    "homed": "WSBP2:MOTR_HOMED_STS",
+                    "initialize": "WSBP2:MOTR_INIT",
+                    "initialize_status": "WSBP2:MOTR_INIT_STS",
+                    "install_angle": "WSBP2:INSTALL_ANGLE",
+                    "motor": "WSBP2:MOTR",
+                    "motor_rbv": "WSBP2:MOTR.RBV",
+                    "mps_speed": "WSBP2:MPS_SPEED",
+                    "retract": "WSBP2:MOTR_RETRACT",
+                    "scan_pulses": "WSBP2:SCANPULSES",
+                    "speed": "WSBP2:MOTR.VELO",
+                    "speed_max": "WSBP2:MOTR.VMAX",
+                    "speed_min": "WSBP2:MOTR.VBAS",
+                    "start_scan": "WSBP2:STARTSCAN",
+                    "temperature": "WSBP2:TEMP",
+                    "timeout": "WSBP2:MOTR_TIMEOUTEN",
+                    "torque_enable": "WSBP2:TORQUE_ENABLE",
+                    "use_u_wire": "WSBP2:USEUWIRE",
+                    "use_x_wire": "WSBP2:USEXWIRE",
+                    "use_y_wire": "WSBP2:USEYWIRE",
+                    "u_size": "WSBP2:UWIRESIZE",
+                    "u_wire_inner": "WSBP2:UWIREINNER",
+                    "u_wire_outer": "WSBP2:UWIREOUTER",
+                    "x_size": "WSBP2:XWIRESIZE",
+                    "x_wire_inner": "WSBP2:XWIREINNER",
+                    "x_wire_outer": "WSBP2:XWIREOUTER",
+                    "y_size": "WSBP2:YWIRESIZE",
+                    "y_wire_inner": "WSBP2:YWIREINNER",
+                    "y_wire_outer": "WSBP2:YWIREOUTER",
+                },
+            },
+            "metadata": {
+                "area": "BYP",
+                "beam_path": ["LCLS"],
+                "sum_l_meters": 0.0,
+                "type": "PROF",
+                "wire_type": "C",
+                "detectors": ["DET1"],
+            },
+        }
+
         # 1) Patch PV ctrlvars before wire construction
         self.ctrl_options_patch = patch("epics.PV.get_ctrlvars", new_callable=Mock)
         self.mock_ctrl_options = self.ctrl_options_patch.start()
@@ -91,6 +140,7 @@ class WireTest(TestCase):
         return super().setUp()
 
     def tearDown(self) -> None:
+        self.slac_db_patch.stop()
         self.ctrl_options_patch.stop()
         self.pv_class_patch.stop()
         return super().tearDown()
@@ -150,10 +200,14 @@ class WireTest(TestCase):
         self.assertEqual(inspect.ismethod(self.wire.position_buffer), True)
         self.assertEqual(inspect.ismethod(self.wire.retract), True)
         self.assertEqual(inspect.ismethod(self.wire.start_scan), True)
-        self.assertEqual(inspect.ismethod(self.wire.set_inner_range), True)
-        self.assertEqual(inspect.ismethod(self.wire.set_outer_range), True)
         self.assertEqual(inspect.ismethod(self.wire.set_range), True)
         self.assertEqual(inspect.ismethod(self.wire.use), True)
+        self.assertEqual(inspect.ismethod(self.wire.active_profiles), True)
+
+    def test_active_profiles_returns_enabled_planes(self):
+        self.mock_pv.get.side_effect = [1, 0, True]
+        self.assertEqual(self.wire.active_profiles(), ["x", "u"])
+        self.mock_pv.get.side_effect = None
 
     def test_name(self) -> None:
         """Test we get expected default"""
