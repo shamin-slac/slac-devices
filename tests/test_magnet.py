@@ -122,6 +122,11 @@ class MagnetTest(TestCase):
         """Test we get expected default"""
         self.assertEqual(self.magnet.name, "SOL1B")
 
+    def test_ctrl_options_are_lazy_loaded(self) -> None:
+        self.mock_ctrl_options.assert_not_called()
+        _ = self.magnet.ctrl_options
+        self.mock_ctrl_options.assert_called_once_with(timeout=1)
+
     def test_tol(self) -> None:
         """Test tol float validation"""
         self.assertIsNone(self.magnet.b_tolerance)
