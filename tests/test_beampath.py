@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import patch, MagicMock
-from pydantic import ValidationError
 
 from slac_devices.beampath import Beampath
 from slac_devices.area import Area
@@ -22,7 +21,7 @@ class TestBeampathRepr(unittest.TestCase):
 
     def test_beampath_repr_with_areas(self):
         """Test __repr__ shows area info and device counts."""
-        # Create minimal area with one magnet
+        # Create minimal area
         area = Area.model_construct(
             name="AREA1", magnet_collection=MagnetCollection.model_construct(magnets={})
         )
@@ -58,7 +57,9 @@ class TestBeampathDeviceCounts(unittest.TestCase):
         """Test _device_counts sums devices from all areas."""
         area1 = Area.model_construct(
             name="AREA1",
-            magnet_collection=MagnetCollection.model_construct(magnets={"M1": MagicMock()}),
+            magnet_collection=MagnetCollection.model_construct(
+                magnets={"M1": MagicMock()}
+            ),
         )
         area2 = Area.model_construct(
             name="AREA2",
@@ -103,7 +104,9 @@ class TestBeampathFindDevice(unittest.TestCase):
     def test_find_device_in_single_area(self):
         """Test find_device returns correct area and device."""
         mock_magnet = MagicMock(spec=Magnet)
-        mock_mag_collection = MagnetCollection.model_construct(magnets={"M1": mock_magnet})
+        mock_mag_collection = MagnetCollection.model_construct(
+            magnets={"M1": mock_magnet}
+        )
         area = Area.model_construct(
             name="AREA1",
             magnet_collection=mock_mag_collection,
@@ -119,11 +122,15 @@ class TestBeampathFindDevice(unittest.TestCase):
     def test_find_device_in_multiple_areas(self):
         """Test find_device finds correct device in multi-area beampath."""
         mock_magnet = MagicMock()
-        mock_mag_collection = MagnetCollection.model_construct(magnets={"M1": mock_magnet})
-        
+        mock_mag_collection = MagnetCollection.model_construct(
+            magnets={"M1": mock_magnet}
+        )
+
         mock_screen = MagicMock(spec=Screen)
-        mock_screen_collection = ScreenCollection.model_construct(screens={"S1": mock_screen})
-        
+        mock_screen_collection = ScreenCollection.model_construct(
+            screens={"S1": mock_screen}
+        )
+
         area1 = Area.model_construct(
             name="AREA1",
             magnet_collection=mock_mag_collection,
@@ -199,7 +206,9 @@ class TestBeampathAggregationMethods(unittest.TestCase):
         )
         area2 = Area.model_construct(
             name="AREA2",
-            magnet_collection=MagnetCollection.model_construct(magnets={"M3": mock_mag3}),
+            magnet_collection=MagnetCollection.model_construct(
+                magnets={"M3": mock_mag3}
+            ),
         )
         bp = Beampath.model_construct(
             name="TEST_BP", areas={"AREA1": area1, "AREA2": area2}
@@ -255,9 +264,13 @@ class TestBeampathAggregationMethods(unittest.TestCase):
 
         area = Area.model_construct(
             name="AREA1",
-            magnet_collection=MagnetCollection.model_construct(magnets={"M1": mock_mag}),
+            magnet_collection=MagnetCollection.model_construct(
+                magnets={"M1": mock_mag}
+            ),
             wire_collection=WireCollection.model_construct(wires={"W1": mock_wire}),
-            screen_collection=ScreenCollection.model_construct(screens={"S1": mock_screen}),
+            screen_collection=ScreenCollection.model_construct(
+                screens={"S1": mock_screen}
+            ),
         )
         bp = Beampath.model_construct(name="TEST_BP", areas={"AREA1": area})
 
@@ -285,7 +298,9 @@ class TestBeampathProperties(unittest.TestCase):
         mock_mag = MagicMock(spec=Magnet)
         area = Area.model_construct(
             name="AREA1",
-            magnet_collection=MagnetCollection.model_construct(magnets={"M1": mock_mag}),
+            magnet_collection=MagnetCollection.model_construct(
+                magnets={"M1": mock_mag}
+            ),
         )
         bp = Beampath.model_construct(name="TEST_BP", areas={"AREA1": area})
 
@@ -313,7 +328,9 @@ class TestBeampathProperties(unittest.TestCase):
 
         area = Area.model_construct(
             name="AREA1",
-            magnet_collection=MagnetCollection.model_construct(magnets={"M1": mock_mag}),
+            magnet_collection=MagnetCollection.model_construct(
+                magnets={"M1": mock_mag}
+            ),
             wire_collection=WireCollection.model_construct(wires={"W1": mock_wire}),
         )
         bp = Beampath.model_construct(name="TEST_BP", areas={"AREA1": area})

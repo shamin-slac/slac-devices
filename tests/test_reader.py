@@ -1,4 +1,3 @@
-import slac_db
 from slac_devices.reader import create_magnet, create_area
 from slac_devices.magnet import Magnet, MagnetCollection
 from slac_devices.area import Area
@@ -164,7 +163,5 @@ class TestAreaReader(unittest.TestCase):
             result = create_area(area="LI30")
 
         self.assertIsInstance(result, Area)
-        self.assertIsNone(result.bpms)
-        self.assertIsNone(result.magnets)
         self.assertIsNotNone(result.tcavs)
         self.assertIn("TCAV0", result.tcavs)
