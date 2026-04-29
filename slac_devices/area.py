@@ -61,9 +61,9 @@ def _prune_invalid_devices(
             continue
 
         payload_copy = dict(payload)
-        payload_copy.pop("name", None)
+        payload_copy["name"] = name
         try:
-            device_class(name=name, **payload_copy)
+            device_class(**payload_copy)
         except (ValidationError, TypeError, Exception) as field_error:
             print(
                 f"Skipping invalid {device_type} {name} in {area_name}: {field_error}"
