@@ -1,6 +1,8 @@
 from pydantic import (
+    BaseModel,
     NonNegativeFloat,
     SerializeAsAny,
+    field_validator,
 )
 from typing import (
     Dict,
@@ -244,3 +246,15 @@ class TCAV(Device):
     def rf_freq(self):
         """The Rf frequency of the TCAV in MHz"""
         return self.metadata.rf_freq
+
+
+class TCAVCollection(BaseModel):
+    tcavs: Dict[str, SerializeAsAny[TCAV]]
+
+    @field_validator("tcavs", mode="before")
+    def validate_tcavs(cls, v) -> Dict[str, TCAV]:
+        for name, tcav in v.items():
+            tcav = dict(tcav)
+            tcav.update({"name": name})
+            v.update({name: tcav})
+        return v

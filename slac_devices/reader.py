@@ -9,9 +9,20 @@ from slac_devices.wire import Wire, WireCollection
 from slac_devices.lblm import LBLM, LBLMCollection
 from slac_devices.pmt import PMT, PMTCollection
 from slac_devices.bpm import BPM, BPMCollection
-from slac_devices.tcav import TCAV
+from slac_devices.tcav import TCAV, TCAVCollection
 from slac_devices.area import Area
 from slac_devices.beampath import Beampath
+
+
+_AREA_SUPPORTED_DEVICE_TYPES = {
+    "magnets",
+    "screens",
+    "wires",
+    "bpms",
+    "lblms",
+    "pmts",
+    "tcavs",
+}
 
 
 def create_magnet(
@@ -102,7 +113,7 @@ def create_bpm(area: str = None, name: str = None) -> Union[None, BPM, BPMCollec
         return BPMCollection(**device_data)
 
 
-def create_tcav(area: str = None, name: str = None) -> Union[None, TCAV]:
+def create_tcav(area: str = None, name: str = None) -> Union[None, TCAV, TCAVCollection]:
     device_data = slac_db.get_device(area=area, device_type="tcavs", name=name)
     if not device_data:
         return None
@@ -114,6 +125,8 @@ def create_tcav(area: str = None, name: str = None) -> Union[None, TCAV]:
         except ValidationError as field_error:
             print(field_error)
             return None
+    else:
+        return TCAVCollection(**device_data)
 
 
 def create_pmt(area: str = None, name: str = None) -> Union[None, PMT]:
@@ -151,8 +164,18 @@ def create_area(area: str = None) -> Union[None, Area]:
     yaml_data = slac_db.get_device(area=area)
     if not yaml_data:
         return None
+
+    filtered_yaml_data = {}
+    for device_type, device_payload in yaml_data.items():
+        if device_type not in _AREA_SUPPORTED_DEVICE_TYPES:
+            print(
+                f"Skipping unsupported device type {device_type} in area {area}."
+            )
+            continue
+        filtered_yaml_data[device_type] = device_payload
+
     try:
-        return Area(name=area, **yaml_data)
+        return Area(name=area, **filtered_yaml_data)
     except ValidationError as field_error:
         print("Error trying to create area", area, " : ", field_error)
         return None

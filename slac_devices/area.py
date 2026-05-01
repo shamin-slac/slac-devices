@@ -29,8 +29,51 @@ from slac_devices.lblm import (
     LBLMCollection,
 )
 from slac_devices.pmt import PMT, PMTCollection
+from slac_devices.tcav import TCAV, TCAVCollection
 
 from pydantic import SerializeAsAny, Field, field_validator
+from pydantic import ValidationError, ValidationInfo
+
+
+def _prune_invalid_devices(
+    area_name: str,
+    device_type: str,
+    device_data: Dict[str, Any],
+    device_class,
+) -> Union[Dict[str, Any], None]:
+    if not device_data:
+        return None
+
+    if not isinstance(device_data, dict):
+        print(
+            f"Skipping {device_type} collection in {area_name}: "
+            + "collection payload is not a dictionary."
+        )
+        return None
+
+    valid_devices = {}
+    for name, payload in device_data.items():
+        if not isinstance(payload, dict):
+            print(
+                f"Skipping {device_type} {name} in {area_name}: "
+                + "device definition is not a dictionary."
+            )
+            continue
+
+        payload_copy = dict(payload)
+        payload_copy["name"] = name
+        try:
+            device_class(**payload_copy)
+        except (ValidationError, TypeError, Exception) as field_error:
+            print(
+                f"Skipping invalid {device_type} {name} in {area_name}: {field_error}"
+            )
+            continue
+        valid_devices[name] = payload_copy
+
+    if not valid_devices:
+        return None
+    return valid_devices
 
 
 class Area(slac_devices.BaseModel):
@@ -98,6 +141,15 @@ class Area(slac_devices.BaseModel):
         alias="pmts",
         default=None,
     )
+    tcav_collection: Optional[
+        Union[
+            SerializeAsAny[TCAVCollection],
+            None,
+        ]
+    ] = Field(
+        alias="tcavs",
+        default=None,
+    )
 
     def __init__(
         self,
@@ -111,59 +163,146 @@ class Area(slac_devices.BaseModel):
             **kwargs,
         )
 
+    def _device_counts(self) -> Dict[str, int]:
+        collection_map = {
+            "magnets": (self.magnet_collection, "magnets"),
+            "screens": (self.screen_collection, "screens"),
+            "wires": (self.wire_collection, "wires"),
+            "bpms": (self.bpm_collection, "bpms"),
+            "lblms": (self.lblm_collection, "lblms"),
+            "pmts": (self.pmt_collection, "pmts"),
+            "tcavs": (self.tcav_collection, "tcavs"),
+        }
+
+        counts = {}
+        for device_type, (collection, attr_name) in collection_map.items():
+            if collection is None:
+                counts[device_type] = 0
+                continue
+            devices = getattr(collection, attr_name, None) or {}
+            counts[device_type] = len(devices)
+        return counts
+
+    def __repr__(self) -> str:
+        counts = self._device_counts()
+        populated_types = [
+            device_type for device_type, count in counts.items() if count > 0
+        ]
+        return (
+            f"Area(name={self.name!r}, total_devices={sum(counts.values())}, "
+            + f"counts={counts}, populated_types={populated_types})"
+        )
+
+    @classmethod
+    def _area_name_from_info(cls, info: ValidationInfo) -> str:
+        if info and info.data and "name" in info.data:
+            return str(info.data["name"])
+        return "<unknown>"
+
     @field_validator(
         "magnet_collection",
         mode="before",
     )
-    def validate_magnets(cls, v: Dict[str, Any]):
-        if not v:
+    def validate_magnets(cls, v: Dict[str, Any], info: ValidationInfo):
+        valid_magnets = _prune_invalid_devices(
+            area_name=cls._area_name_from_info(info),
+            device_type="magnets",
+            device_data=v,
+            device_class=Magnet,
+        )
+        if not valid_magnets:
             return None
-        return MagnetCollection(magnets=v)
+        return MagnetCollection(magnets=valid_magnets)
 
     @field_validator(
         "screen_collection",
         mode="before",
     )
-    def validate_screens(cls, v: Dict[str, Any]):
-        if not v:
+    def validate_screens(cls, v: Dict[str, Any], info: ValidationInfo):
+        valid_screens = _prune_invalid_devices(
+            area_name=cls._area_name_from_info(info),
+            device_type="screens",
+            device_data=v,
+            device_class=Screen,
+        )
+        if not valid_screens:
             return None
-        return ScreenCollection(screens=v)
+        return ScreenCollection(screens=valid_screens)
 
     @field_validator(
         "wire_collection",
         mode="before",
     )
-    def validate_wires(cls, v: Dict[str, Any]):
-        if not v:
+    def validate_wires(cls, v: Dict[str, Any], info: ValidationInfo):
+        valid_wires = _prune_invalid_devices(
+            area_name=cls._area_name_from_info(info),
+            device_type="wires",
+            device_data=v,
+            device_class=Wire,
+        )
+        if not valid_wires:
             return None
-        return WireCollection(wires=v)
+        return WireCollection(wires=valid_wires)
 
     @field_validator(
         "bpm_collection",
         mode="before",
     )
-    def validate_bpms(cls, v: Dict[str, Any]):
-        if not v:
+    def validate_bpms(cls, v: Dict[str, Any], info: ValidationInfo):
+        valid_bpms = _prune_invalid_devices(
+            area_name=cls._area_name_from_info(info),
+            device_type="bpms",
+            device_data=v,
+            device_class=BPM,
+        )
+        if not valid_bpms:
             return None
-        return BPMCollection(bpms=v)
+        return BPMCollection(bpms=valid_bpms)
 
     @field_validator(
         "lblm_collection",
         mode="before",
     )
-    def validate_lblms(cls, v: Dict[str, Any]):
-        if not v:
+    def validate_lblms(cls, v: Dict[str, Any], info: ValidationInfo):
+        valid_lblms = _prune_invalid_devices(
+            area_name=cls._area_name_from_info(info),
+            device_type="lblms",
+            device_data=v,
+            device_class=LBLM,
+        )
+        if not valid_lblms:
             return None
-        return LBLMCollection(lblms=v)
+        return LBLMCollection(lblms=valid_lblms)
 
     @field_validator(
         "pmt_collection",
         mode="before",
     )
-    def validate_pmts(cls, v: Dict[str, Any]):
-        if not v:
+    def validate_pmts(cls, v: Dict[str, Any], info: ValidationInfo):
+        valid_pmts = _prune_invalid_devices(
+            area_name=cls._area_name_from_info(info),
+            device_type="pmts",
+            device_data=v,
+            device_class=PMT,
+        )
+        if not valid_pmts:
             return None
-        return PMTCollection(pmts=v)
+        return PMTCollection(pmts=valid_pmts)
+
+    @field_validator(
+        "tcav_collection",
+        mode="before",
+    )
+    def validate_tcavs(cls, v: Dict[str, Any], info: ValidationInfo):
+        valid_tcavs = _prune_invalid_devices(
+            area_name=cls._area_name_from_info(info),
+            device_type="tcavs",
+            device_data=v,
+            device_class=TCAV,
+        )
+        if not valid_tcavs:
+            return None
+        return TCAVCollection(tcavs=valid_tcavs)
 
     @property
     def magnets(
@@ -267,6 +406,23 @@ class Area(slac_devices.BaseModel):
             print("Area does not contain pmts.")
             return None
 
+    @property
+    def tcavs(
+        self,
+    ) -> Union[
+        Dict[str, TCAV],
+        None,
+    ]:
+        """
+        A Dict[str, TCAV] for this area, where the dict keys are tcav names.
+        If no tcavs exist for this area, this property is None.
+        """
+        if self.tcav_collection:
+            return self.tcav_collection.tcavs
+        else:
+            print("Area does not contain tcavs.")
+            return None
+
     def does_magnet_exist(
         self,
         magnet_name: str = None,
@@ -302,3 +458,9 @@ class Area(slac_devices.BaseModel):
         pmt_name: str = None,
     ) -> bool:
         return pmt_name in self.pmts
+
+    def does_tcav_exist(
+        self,
+        tcav_name: str = None,
+    ) -> bool:
+        return tcav_name in self.tcavs
