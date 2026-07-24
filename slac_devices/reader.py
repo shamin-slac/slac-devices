@@ -9,7 +9,7 @@ from slac_devices.lblm import LBLM, LBLMCollection
 from slac_devices.pmt import PMT, PMTCollection
 from slac_devices.bpm import BPM, BPMCollection
 from slac_devices.tcav import TCAV, TCAVCollection
-from slac_devices.toroid import Toroid
+from slac_devices.toroid import Toroid, ToroidCollection
 from slac_devices.area import Area
 from slac_devices.beampath import Beampath
 
@@ -183,7 +183,8 @@ def create_toroid(area: str = None, name: str = None) -> Union[None, Toroid]:
         except ValidationError as field_error:
             print(field_error)
             return None
-    return None
+    else:
+        return ToroidCollection(**device_data)
 
 
 def create_area(
