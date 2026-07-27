@@ -1,4 +1,6 @@
-from pydantic import SerializeAsAny
+from typing import Dict
+
+from pydantic import BaseModel, SerializeAsAny, field_validator
 
 from slac_devices.device import Device, PVSet, ControlInformation, Metadata
 from slac_timing import Buffer
@@ -39,3 +41,17 @@ class Toroid(Device):
     def tmit_buffer(self, buffer: Buffer, **kwargs):
         """Retrieve per-pulse TMIT data from timing buffer."""
         return buffer.get(f"{self.controls_information.control_name}:TMIT", **kwargs)
+
+
+class ToroidCollection(BaseModel):
+    toroids: Dict[str, SerializeAsAny[Toroid]]
+
+    @field_validator("toroids", mode="before")
+    def validate_toroids(cls, v) -> Dict[str, Toroid]:
+        for name, toroid in v.items():
+            if isinstance(toroid, Toroid):
+                continue
+            toroid = dict(toroid)
+            toroid.update({"name": name})
+            v.update({name: toroid})
+        return v
