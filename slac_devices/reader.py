@@ -9,6 +9,7 @@ from slac_devices.lblm import LBLM, LBLMCollection
 from slac_devices.pmt import PMT, PMTCollection
 from slac_devices.bpm import BPM, BPMCollection
 from slac_devices.tcav import TCAV, TCAVCollection
+from slac_devices.toroid import Toroid, ToroidCollection
 from slac_devices.area import Area
 from slac_devices.beampath import Beampath
 
@@ -21,6 +22,7 @@ _AREA_SUPPORTED_DEVICE_TYPES = {
     "lblms",
     "pmts",
     "tcavs",
+    "toroids",
 }
 
 _CONSTRUCTOR_MAP = {
@@ -31,7 +33,9 @@ _CONSTRUCTOR_MAP = {
     "lblms": LBLM,
     "pmts": PMT,
     "tcavs": TCAV,
+    "toroids": Toroid,
 }
+
 
 def create_device(name):
     data = slac_db.db_to_yaml.get_device(name)
@@ -45,6 +49,7 @@ def create_device(name):
     except ValidationError as field_error:
         print(field_error)
         return None
+
 
 def create_magnet(
     area: str = None, name: str = None
@@ -165,6 +170,21 @@ def create_pmt(area: str = None, name: str = None) -> Union[None, PMT]:
             return None
     else:
         return PMTCollection(**device_data)
+
+
+def create_toroid(area: str = None, name: str = None) -> Union[None, Toroid]:
+    device_data = slac_db.get_device(area=area, device_type="toroids", name=name)
+    if not device_data:
+        return None
+    if name:
+        try:
+            device_data.update({"name": name})
+            return Toroid(**device_data)
+        except ValidationError as field_error:
+            print(field_error)
+            return None
+    else:
+        return ToroidCollection(**device_data)
 
 
 def create_area(
