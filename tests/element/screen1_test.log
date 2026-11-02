@@ -1,0 +1,12 @@
+=============================== test session starts ================================
+platform darwin -- Python 3.14.4, pytest-9.0.3, pluggy-1.6.0 -- /opt/homebrew/Caskroom/miniconda/base/envs/slicops/bin/python3.14
+cachedir: .pytest_cache
+rootdir: /Users/efjy/dev/slicops
+configfile: pyproject.toml
+plugins: asyncio-1.3.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... collected 1 item
+
+tests/device/screen1_test.py::test_upstream_ok PASSED
+
+================================ 1 passed in 2.73s =================================
