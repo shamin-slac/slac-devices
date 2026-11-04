@@ -160,9 +160,9 @@ class _Accessor:
             raise DeviceError(f"unable to get {self}")
         if not p.connected:
             raise DeviceError(f"disconnected {self}")
-        return rv
+        # return rv
         # From slicops. py_type not currently implemented.
-        # return self._fixup_read(rv)
+        return self._fixup_read(rv)
 
     def monitor(self, callback):
         """Monitor accessor and call callback with updates and connection changes
@@ -202,8 +202,8 @@ class _Accessor:
         """
         # ECA_NORMAL == 0 and None is normal, too, apparently
         p = self.__cs()
-        if (e := p.put(v)) != 1:
-            raise DeviceError(f"put error={e} value={v} {self}")
+        if (e := p.put(value)) != 1:
+            raise DeviceError(f"put error={e} value={value} {self}")
         if not p.connected:
             raise DeviceError(f"disconnected {self}")
 
@@ -214,7 +214,6 @@ class _Accessor:
     def _fixup_read(self, raw):
         def _reshape(image):
             return image.reshape(self._image_shape)
-
         if self.meta.py_type == bool:
             return bool(raw)
         if self.accessor_name == "image":
