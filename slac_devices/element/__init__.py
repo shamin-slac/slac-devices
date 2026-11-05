@@ -35,6 +35,13 @@ class DeviceError(RuntimeError):
     pass
 
 
+class DeviceCollection(PKDict):
+    def __init__(self, device_names):
+        super().__init__(
+            {dn: Device(dn) for dn in device_names}
+        )
+
+
 class Device:
     """Wrapper around physical device
 
