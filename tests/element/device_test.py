@@ -13,12 +13,23 @@ import pytest
 def reset_db():
     import slac_db.device
     import slac_db.create
+    import sys
+    hold = {}
+    modules = list(sys.modules.keys())
+    for m in modules:
+        if 'epics' in m:
+            hold[m] = sys.modules.pop(m)
     prod_path = slac_db.device._db_path
     slac_db.device._meta = None
     slac_db.create.dummy_db()
     yield
     slac_db.device._meta = None
     slac_db.device._db_path = prod_path
+    modules = list(sys.modules.keys())
+    for m in modules:
+        if 'epics' in m:
+            del sys.modules[m]
+    sys.modules.update(hold)
 
 
 def test_basic(reset_db):
