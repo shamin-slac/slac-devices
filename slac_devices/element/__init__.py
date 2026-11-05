@@ -9,16 +9,12 @@ Adapted from slicops http://github.com/slaclab/slicops/
 from pykern.pkcollections import PKDict
 from pykern.pkdebug import pkdc, pkdexc, pkdlog, pkdp
 import epics
-import slac_db.device
-# from slac_devices.element.screen import Screen
 import threading
+
+import slac_db.device
 
 # TODO(robnagler) configure via device_db
 _TIMEOUT = 5
-
-# _DEVICE_TYPE_FACTORY = {
-    # "PROF": slac_device.element.screen.Screen
-# }
 
 _DEVICE_TYPE_FACTORY = {}
 
@@ -108,8 +104,6 @@ class Device:
             accessor_name (str): control system independent name
             value (object): Value to write to control system
         """
-        # Fro slicops. py-type not yet implemented.
-        # value = _fixup_write(value)
         return self.accessor(accessor_name).put(value)
 
     def __repr__(self):
@@ -128,6 +122,8 @@ class _Accessor:
         self.device = device
         self.accessor_name = accessor_name
         self.meta = device.meta.accessor[accessor_name]
+        # Not included in db yet. Stopgap to remove.
+        self.meta.writable = True
         self._callback = None
         self._destroyed = False
         self._lock = threading.Lock()
@@ -167,8 +163,6 @@ class _Accessor:
             raise DeviceError(f"unable to get {self}")
         if not p.connected:
             raise DeviceError(f"disconnected {self}")
-        # return rv
-        # From slicops. py_type not currently implemented.
         return self._fixup_read(rv)
 
     def monitor(self, callback):
@@ -209,6 +203,7 @@ class _Accessor:
         """
         # ECA_NORMAL == 0 and None is normal, too, apparently
         p = self.__cs()
+        value = self._fixup_write(value)
         if (e := p.put(value)) != 1:
             raise DeviceError(f"put error={e} value={value} {self}")
         if not p.connected:
@@ -238,7 +233,7 @@ class _Accessor:
             value = float(raw)
         else:
             raise AccessorPutError(f"unhandled py_type={self.meta.py_type} {self}")
-        return v
+        return value
 
     def _on_connection(self, **kwargs):
         try:
