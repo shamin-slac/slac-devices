@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import Enum
 from functools import wraps
 import time
 from pydantic import (
@@ -78,6 +79,11 @@ class MagnetMetadata(Metadata):
         super(MagnetMetadata, self).__init__(*args, **kwargs)
 
 
+class SettingMode(Enum):
+    PERTURB = "perturb"
+    TRIM = "trim"
+
+
 class MagnetTimeoutError(Exception):
     """Raised when the magnet fails to settle within the allowed time"""
 
@@ -93,16 +99,30 @@ class Magnet(Device):
 
     """ Decorators """
 
-    def check_state(f):
-        """Decorator to only allow transitions in 'Ready' state"""
+    def check_state(timeout=10.0):
+        """Decorator to block until self.ctrl is 'Ready', or raise TimeoutError."""
 
-        def decorated(self, *args, **kwargs):
-            if self.ctrl != "Ready":
-                print("Unable to perform action, magnet not in Ready state")
-                return
-            return f(self, *args, **kwargs)
+        def decorator(function):
+            @wraps(function)
+            def decorated(self, *args, **kwargs):
+                start_time = datetime.now()
 
-        return decorated
+                print("Waiting for magnet to be in Ready state")
+                while self.ctrl != "Ready":
+                    if (datetime.now() - start_time).seconds > timeout:
+                        raise TimeoutError(
+                            f"Timed out waiting for controller to become Ready "
+                            f"(current state: {self.ctrl!r})"
+                        )
+
+                    time.sleep(0.1)
+                print("Magnet is in Ready state")
+
+                return function(self, *args, **kwargs)
+
+            return decorated
+
+        return decorator
 
     def check_options(options_to_check: Union[str, List]):
         """Decorator to only allow :CTRL to be set if that option exists for the magnet"""
@@ -176,7 +196,9 @@ class Magnet(Device):
 
     @bdes.setter
     def bdes(self, bval) -> None:
-        self.controls_information.PVs.bdes.put(value=bval, wait=True)  # wait until PV has been set
+        self.controls_information.PVs.bdes.put(
+            value=bval, wait=True
+        )  # wait until PV has been set
 
     @property
     def ctrl(self) -> str:
@@ -210,11 +232,11 @@ class Magnet(Device):
     def read_tolerance(self) -> float:
         return self.metadata.read_tolerance
 
-    def is_bact_settled(self, b_tolerance: Optional[float] = 0.001) -> bool:
+    def is_bact_settled(self, b_tolerance: Optional[float] = 0.005) -> bool:
         if b_tolerance:
             return abs(self.bdes - self.bact) < b_tolerance
         else:
-            return abs(self.bdes - self.bact) < 0.001
+            return abs(self.bdes - self.bact) < 0.005
 
     @check_options("TRIM")
     @check_state
@@ -290,25 +312,47 @@ class Magnet(Device):
         self,
         scan_settings: List[float],
         function: Optional[callable] = None,
+        settle_timout_in_seconds: int = 10,
+        setting_mode: str | SettingMode = SettingMode.PERTURB,
     ) -> None:
         for setting in scan_settings:
-            self.set_bdes_with_validation(setting)
+            self.set_bdes_with_validation(
+                setting, settle_timout_in_seconds, setting_mode
+            )
             function() if function else None
 
-    def set_bdes_with_validation(self, bval: float, settle_timeout_in_seconds: int = 5):
+    def set_bdes_with_validation(
+        self,
+        bval: float,
+        settle_timeout_in_seconds: int = 10,
+        setting_mode: str | SettingMode = SettingMode.PERTURB,
+    ):
         self.bdes = bval
-        self.trim()
-        time_when_trim_started = datetime.now()
+
+        if isinstance(setting_mode, str):
+            try:
+                setting_mode = SettingMode(setting_mode.strip().lower())
+            except ValueError:
+                valid = ", ".join(m.value for m in SettingMode)
+                raise ValueError(f"Invalid mode {setting_mode!r}; choose from: {valid}")
+
+        print(f"Setting magnet to {bval} kG")
+        if setting_mode is SettingMode.PERTURB:
+            self.perturb()
+        elif setting_mode is SettingMode.TRIM:
+            self.trim()
+        time_when_set_started = datetime.now()
         while not self.is_bact_settled(self.b_tolerance):
             # Timeout if magnet takes too long to settle
             if (
-                datetime.now() - time_when_trim_started
+                datetime.now() - time_when_set_started
             ).seconds > settle_timeout_in_seconds:
                 raise MagnetTimeoutError(
                     f"Took more than {settle_timeout_in_seconds} seconds for "
                     f"{self.name}:BACT to reach {self.name}:BDES."
                 )
             time.sleep(0.1)
+        print(f"Magnet is set to {bval} kG")
 
 
 class MagnetCollection(DeviceCollection):
